@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedalVault</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #08080f;
+  --surface: #11111c;
+  --surface2: #1a1a28;
+  --surface3: #22223a;
+  --border: #2a2a44;
+  --text: #e8e8f8;
+  --muted: #666680;
+  --gold: #f5a623;
+
+  /* Level colors */
+  --lvl1: #78909c; --lvl2: #4caf50; --lvl3: #42a5f5;
+  --lvl4: #ab47bc; --lvl5: #ef5350; --lvl6: #f5a623;
+
+  /* Rarity colors */
+  --common: #78909c;   --common-glow: #78909c44;
+  --rare: #2196f3;     --rare-glow: #2196f344;
+  --epic: #9c27b0;     --epic-glow: #9c27b044;
+  --legendary: #ff9800;--legendary-glow: #ff980066;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; max-width: 430px; margin: 0 auto; min-height: 100vh; overflow-x: hidden; position: relative; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #2a2a44; border-radius: 4px; }
+
+/* ── STATUS BAR ── */
+.status-bar { background: #040409; height: 28px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+.status-bar span { color: #fff; font-size: 11px; font-weight: 600; }
+.status-bar .app-name { color: var(--gold); letter-spacing: 2px; font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 13px; }
+
+/* ── HEADER ── */
+.header { padding: 14px 16px 16px; background: linear-gradient(180deg, #040409 0%, var(--surface) 100%); border-bottom: 0.5px solid var(--border); }
+.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.profile-row { display: flex; align-items: center; gap: 12px; }
+.avatar-wrap { position: relative; width: 50px; height: 50px; flex-shrink: 0; }
+.avatar-img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
+.avatar-placeholder { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: #fff; }
+.avatar-frame { position: absolute; inset: -4px; border-radius: 50%; border: 3px solid transparent; pointer-events: none; }
+.frame-none { border-color: transparent; }
+.frame-fire { border-color: #ef5350; box-shadow: 0 0 12px #ef535066, inset 0 0 6px #ef535022; animation: pulseFrame 2s ease-in-out infinite; }
+.frame-diamond { border-color: #42a5f5; box-shadow: 0 0 12px #42a5f566, inset 0 0 6px #42a5f522; }
+.frame-gold { border-color: var(--gold); box-shadow: 0 0 16px var(--gold)66; animation: pulseFrame 1.5s ease-in-out infinite; }
+.frame-legendary { border: none; }
+.frame-legendary::before { content: ''; position: absolute; inset: -4px; border-radius: 50%; background: conic-gradient(#f5a623, #ef5350, #9c27b0, #2196f3, #f5a623); animation: rotateLegendary 2s linear infinite; }
+.frame-legendary::after { content: ''; position: absolute; inset: -1px; border-radius: 50%; background: var(--bg); }
+@keyframes pulseFrame { 0%,100%{opacity:1} 50%{opacity:0.7} }
+@keyframes rotateLegendary { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+.user-name { font-size: 15px; font-weight: 700; color: var(--text); }
+.user-sub { font-size: 11px; color: var(--muted); }
+.level-pill { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; font-family: 'Rajdhani', sans-serif; letter-spacing: 0.5px; }
+
+.xp-section { }
+.xp-labels { display: flex; justify-content: space-between; font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 5px; }
+.xp-track { background: rgba(255,255,255,0.08); border-radius: 6px; height: 8px; overflow: hidden; }
+.xp-fill { height: 100%; border-radius: 6px; transition: width 1s cubic-bezier(.4,0,.2,1); }
+.xp-title { font-size: 11px; text-align: center; margin-top: 6px; font-family: 'Rajdhani', sans-serif; letter-spacing: 1px; }
+
+/* ── STATS ROW ── */
+.stats-row { display: flex; gap: 8px; padding: 12px 16px; background: var(--surface); border-bottom: 0.5px solid var(--border); }
+.stat-card { flex: 1; background: var(--surface2); border-radius: 10px; padding: 8px 6px; text-align: center; border: 0.5px solid var(--border); }
+.stat-num { font-size: 15px; font-weight: 800; color: var(--text); font-family: 'Rajdhani', sans-serif; }
+.stat-label { font-size: 9px; color: var(--muted); margin-top: 1px; }
+
+/* ── BOTTOM NAV ── */
+.bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: var(--surface); border-top: 0.5px solid var(--border); display: flex; padding: 8px 0 18px; z-index: 30; }
+.nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; opacity: 0.4; transition: opacity 0.2s; }
+.nav-item.active { opacity: 1; }
+.nav-item svg { width: 22px; height: 22px; }
+.nav-item span { font-size: 9px; font-weight: 600; }
+.nav-add-btn { flex: 1; display: flex; flex-direction: column; align-items: center; }
+.nav-add-circle { width: 48px; height: 48px; background: linear-gradient(135deg, var(--gold), #e85d04); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: -20px; border: 3px solid var(--bg); cursor: pointer; font-size: 26px; line-height: 1; color: #fff; font-weight: 300; box-shadow: 0 4px 20px #f5a62344; }
+.nav-add-circle:hover { transform: scale(1.05); }
+.nav-add-label { font-size: 9px; color: var(--gold); margin-top: 4px; font-weight: 700; }
+
+/* ── CONTENT AREA ── */
+.content { overflow-y: auto; height: calc(100vh - 240px); padding-bottom: 88px; }
+
+/* ── SECTION ── */
+.section { padding: 14px 16px 0; }
+.section-title { font-size: 12px; color: var(--muted); font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; letter-spacing: 0.5px; text-transform: uppercase; }
+
+/* ── MEDAL CARD ── */
+.medals-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.medal-card { background: var(--surface2); border-radius: 12px; overflow: hidden; cursor: pointer; transition: transform 0.15s, box-shadow 0.2s; border: 1px solid var(--border); position: relative; }
+.medal-card:hover { transform: translateY(-2px); }
+.medal-card.common  { border-color: var(--common); box-shadow: 0 0 8px var(--common-glow); }
+.medal-card.rare    { border-color: var(--rare);   box-shadow: 0 0 10px var(--rare-glow); }
+.medal-card.epic    { border-color: var(--epic);   box-shadow: 0 0 12px var(--epic-glow); }
+.medal-card.legendary { border-color: var(--legendary); box-shadow: 0 0 16px var(--legendary-glow); animation: legendaryPulse 2s ease-in-out infinite; }
+@keyframes legendaryPulse { 0%,100%{box-shadow:0 0 16px var(--legendary-glow)} 50%{box-shadow:0 0 28px #ff980088} }
+.medal-art { height: 78px; display: flex; align-items: center; justify-content: center; font-size: 40px; position: relative; }
+.rarity-badge { position: absolute; top: 4px; left: 4px; font-size: 8px; font-weight: 700; padding: 2px 5px; border-radius: 6px; font-family: 'Rajdhani', sans-serif; letter-spacing: 0.5px; }
+.rarity-common   { background: var(--common)22;  color: var(--common); }
+.rarity-rare     { background: var(--rare)22;    color: var(--rare); }
+.rarity-epic     { background: var(--epic)22;    color: var(--epic); }
+.rarity-legendary{ background: var(--legendary)22;color:var(--legendary); }
+.pin-dot { position: absolute; top: 4px; right: 4px; font-size: 10px; }
+.medal-info { padding: 6px 8px 8px; }
+.medal-name { font-size: 10px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.medal-meta { font-size: 9px; color: var(--muted); margin-top: 2px; }
+.medal-xp { font-size: 9px; color: var(--gold); margin-top: 3px; font-weight: 700; }
+
+/* ── MEDAL DETAIL MODAL (3D) ── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 50; display: flex; align-items: flex-end; justify-content: center; backdrop-filter: blur(4px); animation: fadeOverlay 0.2s ease; }
+@keyframes fadeOverlay { from{opacity:0} to{opacity:1} }
+.modal-sheet { background: var(--surface); border-radius: 24px 24px 0 0; width: 100%; max-width: 430px; padding: 0 0 36px; border: 0.5px solid var(--border); max-height: 92vh; overflow-y: auto; animation: slideUp 0.3s cubic-bezier(.4,0,.2,1); }
+@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.sheet-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 14px auto 0; }
+
+/* 3D Medal Scene */
+.medal-3d-scene { width: 100%; height: 240px; display: flex; align-items: center; justify-content: center; perspective: 800px; margin: 16px 0; position: relative; overflow: hidden; }
+.medal-scene-bg { position: absolute; inset: 0; }
+.medal-3d-container { position: relative; width: 160px; height: 160px; transform-style: preserve-3d; cursor: grab; user-select: none; }
+.medal-3d-container:active { cursor: grabbing; }
+.medal-face { position: absolute; width: 160px; height: 160px; border-radius: 50%; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+.medal-front { }
+.medal-back { transform: rotateY(180deg); padding: 12px; }
+.medal-ribbon { position: absolute; top: -40px; left: 50%; transform: translateX(-50%); width: 20px; height: 44px; border-radius: 3px 3px 0 0; }
+.medal-ribbon::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 30px; height: 16px; border-radius: 50%; }
+.medal-back-text { font-size: 8.5px; color: rgba(255,255,255,0.9); text-align: center; line-height: 1.5; font-family: 'Rajdhani', sans-serif; font-weight: 500; letter-spacing: 0.3px; }
+.medal-back-divider { width: 60%; height: 0.5px; background: rgba(255,255,255,0.2); margin: 5px auto; }
+.rotate-hint { position: absolute; bottom: 8px; font-size: 10px; color: var(--muted); display: flex; align-items: center; gap: 4px; animation: fadeHint 3s ease 1s forwards; }
+@keyframes fadeHint { 0%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
+
+.medal-detail-info { padding: 0 20px; }
+.medal-detail-name { font-size: 22px; font-weight: 800; color: var(--text); font-family: 'Rajdhani', sans-serif; letter-spacing: 0.5px; }
+.medal-detail-race { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.rarity-row { display: flex; align-items: center; gap: 8px; margin: 12px 0; }
+.rarity-tag { font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; font-family: 'Rajdhani', sans-serif; letter-spacing: 1px; }
+.unlock-tag { font-size: 11px; color: var(--muted); background: var(--surface2); padding: 4px 10px; border-radius: 20px; }
+
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
+.stat-box { background: var(--surface2); border-radius: 10px; padding: 10px 8px; text-align: center; border: 0.5px solid var(--border); }
+.stat-box-val { font-size: 16px; font-weight: 800; font-family: 'Rajdhani', sans-serif; }
+.stat-box-lbl { font-size: 9px; color: var(--muted); margin-top: 2px; }
+
+.timing-box { background: var(--surface2); border-radius: 12px; padding: 12px 14px; margin: 12px 0; border: 0.5px solid var(--border); }
+.timing-title { font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.timing-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 3px 0; border-bottom: 0.5px solid var(--border); }
+.timing-row:last-child { border-bottom: none; }
+.timing-label { color: var(--muted); }
+.timing-val { color: var(--text); font-weight: 600; font-family: 'Rajdhani', sans-serif; font-size: 13px; }
+
+.action-btn { width: 100%; padding: 13px; border-radius: 12px; border: 1.5px solid; background: transparent; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.2s; margin-top: 8px; }
+.action-btn:hover { opacity: 0.85; }
+
+/* ── LEVELS TAB ── */
+.level-road { padding: 16px 0; }
+.level-item { display: flex; gap: 14px; align-items: flex-start; padding: 10px 20px; border-left: 3px solid transparent; margin-bottom: 2px; transition: background 0.2s; }
+.level-item.current { background: var(--surface2); }
+.level-icon-wrap { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; position: relative; z-index: 1; }
+.level-connector { position: absolute; left: 40px; top: 52px; bottom: 0; width: 2px; background: var(--border); z-index: 0; }
+.level-name { font-size: 14px; font-weight: 700; font-family: 'Rajdhani', sans-serif; letter-spacing: 0.5px; }
+.level-perk { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.level-xp-req { font-size: 10px; font-family: 'Rajdhani', sans-serif; margin-left: auto; opacity: 0.6; flex-shrink: 0; }
+.current-badge { font-size: 9px; background: var(--gold); color: #000; border-radius: 6px; padding: 2px 6px; margin-left: 6px; font-weight: 700; }
+
+/* ── PROFILE TAB ── */
+.profile-banner { width: 100%; height: 110px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 13px; color: rgba(255,255,255,0.4); margin-bottom: 12px; position: relative; overflow: hidden; }
+.banner-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px; }
+.banner-option { border-radius: 10px; height: 60px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 11px; border: 2px solid transparent; transition: border-color 0.2s; position: relative; overflow: hidden; }
+.banner-option.selected { border-color: var(--gold); }
+.banner-name { position: absolute; bottom: 4px; left: 0; right: 0; text-align: center; font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.8); background: rgba(0,0,0,0.5); padding: 2px; }
+
+.frame-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+.frame-option { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
+.frame-preview { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; position: relative; }
+.frame-option-label { font-size: 9px; color: var(--muted); text-align: center; }
+.frame-option.selected .frame-option-label { color: var(--gold); }
+
+/* ── SHOP / LOJA TAB ── */
+.shop-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 8px; }
+.points-pill { display: flex; align-items: center; gap: 5px; background: var(--surface2); border-radius: 20px; padding: 5px 12px; border: 0.5px solid var(--border); }
+.points-pill span { font-size: 13px; font-weight: 800; color: var(--gold); font-family: 'Rajdhani', sans-serif; }
+.filter-row { display: flex; gap: 6px; overflow-x: auto; padding: 0 16px 10px; }
+.filter-btn { flex-shrink: 0; padding: 5px 12px; border-radius: 20px; border: 0.5px solid var(--border); background: transparent; color: var(--muted); font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; white-space: nowrap; }
+.filter-btn.active { border-color: var(--gold); background: #f5a62320; color: var(--gold); }
+.shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px; }
+.shop-item { background: var(--surface2); border-radius: 14px; padding: 14px 12px; border: 0.5px solid var(--border); }
+.shop-item-icon { font-size: 34px; text-align: center; margin-bottom: 8px; }
+.shop-item-name { font-size: 12px; font-weight: 700; color: var(--text); text-align: center; }
+.shop-item-type { font-size: 9px; color: var(--muted); text-align: center; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+.buy-btn { width: 100%; margin-top: 10px; padding: 7px; border-radius: 8px; border: none; font-size: 12px; font-weight: 700; cursor: pointer; font-family: 'Rajdhani', sans-serif; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+.buy-btn.can-buy { background: #f5a62322; color: var(--gold); }
+.buy-btn.owned { background: #4caf5020; color: #4caf50; cursor: default; }
+.buy-btn.cant-buy { background: var(--surface3); color: var(--muted); cursor: not-allowed; }
+
+/* ── FEED ── */
+.feed-item { display: flex; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 0.5px solid var(--surface2); }
+.feed-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: #fff; flex-shrink: 0; font-family: 'Rajdhani', sans-serif; }
+.feed-text { flex: 1; font-size: 12px; }
+.feed-user { font-weight: 700; color: var(--text); }
+.feed-action { color: var(--muted); }
+.feed-target { color: var(--text); }
+.feed-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.feed-emoji { font-size: 24px; }
+
+/* ── ADD MODAL ── */
+.add-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 60; display: flex; align-items: flex-end; justify-content: center; }
+.add-sheet { background: var(--surface); border-radius: 24px 24px 0 0; width: 100%; max-width: 430px; padding: 0 20px 36px; border: 0.5px solid var(--border); max-height: 88vh; overflow-y: auto; animation: slideUp 0.3s cubic-bezier(.4,0,.2,1); }
+.add-title { font-size: 18px; font-weight: 800; color: var(--text); font-family: 'Rajdhani', sans-serif; letter-spacing: 0.5px; }
+.step-dots { display: flex; gap: 6px; margin-bottom: 20px; }
+.step-dot { flex: 1; height: 3px; border-radius: 2px; background: var(--border); transition: background 0.3s; }
+.step-dot.done { background: var(--gold); }
+
+.method-card { background: var(--surface2); border: 1.5px solid var(--border); border-radius: 14px; padding: 14px 16px; cursor: pointer; display: flex; gap: 14px; align-items: flex-start; margin-bottom: 10px; transition: border-color 0.2s; }
+.method-card:hover { border-color: var(--gold); }
+.method-icon { font-size: 28px; flex-shrink: 0; }
+.method-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.method-desc { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.partner-badge { font-size: 9px; background: #f5a62322; color: var(--gold); border-radius: 6px; padding: 2px 6px; margin-left: 6px; font-weight: 700; }
+
+label.field-label { font-size: 11px; color: var(--muted); font-weight: 700; display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.field-input { width: 100%; background: var(--surface2); border: 0.5px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none; }
+.field-input:focus { border-color: var(--gold); }
+select.field-input option { background: var(--surface2); }
+
+.xp-preview { background: linear-gradient(135deg, var(--surface2), #1a1a30); border-radius: 14px; padding: 18px; text-align: center; border: 1.5px solid var(--gold)44; margin-bottom: 14px; }
+.xp-big { font-size: 36px; font-weight: 800; color: var(--gold); font-family: 'Rajdhani', sans-serif; }
+.confirm-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: linear-gradient(90deg, var(--gold), #e85d04); color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; font-family: 'Rajdhani', sans-serif; letter-spacing: 1px; }
+
+/* ── TOAST ── */
+.toast { position: fixed; top: 36px; left: 50%; transform: translateX(-50%); background: var(--surface2); border-radius: 20px; padding: 10px 18px; font-size: 13px; font-weight: 700; z-index: 200; white-space: nowrap; animation: toastIn 0.3s ease; pointer-events: none; }
+@keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(-10px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+
+/* ── LEVEL UP ── */
+.levelup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 150; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px; animation: fadeOverlay 0.3s ease; }
+.levelup-emoji { font-size: 80px; animation: bounce 0.6s ease infinite alternate; }
+@keyframes bounce { from{transform:scale(1)} to{transform:scale(1.1)} }
+.levelup-title { font-size: 32px; font-weight: 800; font-family: 'Rajdhani', sans-serif; letter-spacing: 2px; }
+.levelup-sub { font-size: 14px; color: var(--muted); }
+
+/* ── SCAN ANIMATION ── */
+.scan-box { background: var(--surface2); border-radius: 16px; padding: 28px; text-align: center; margin-bottom: 14px; border: 1.5px dashed var(--border); }
+.scan-box.scanning { border-color: var(--gold); }
+.scan-line { width: 100%; height: 2px; background: var(--gold); animation: scanAnim 1.5s ease-in-out infinite; opacity: 0; }
+.scan-box.scanning .scan-line { opacity: 1; }
+@keyframes scanAnim { 0%{transform:translateY(0);opacity:1} 100%{transform:translateY(60px);opacity:0} }
+</style>
+</head>
+<body>
+
+<div class="status-bar">
+  <span>9:41</span>
+  <span class="app-name">MEDALVAULT</span>
+  <span>⚡ 87%</span>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-top">
+    <div class="profile-row">
+      <div class="avatar-wrap" id="avatarWrap">
+        <div class="avatar-placeholder" id="avatarEl" style="background:linear-gradient(135deg,#f5a62388,#e85d04)">MR</div>
+        <div class="avatar-frame" id="avatarFrame"></div>
+      </div>
+      <div>
+        <div class="user-name">Marcos Ribeiro</div>
+        <div class="user-sub">Corredor de Rua · SP</div>
+      </div>
+    </div>
+    <div class="level-pill" id="levelPill">⬆ Nível 1</div>
+  </div>
+  <div class="xp-section">
+    <div class="xp-labels">
+      <span id="xpCurrent">0 XP</span>
+      <span id="xpNext">próximo: 500 XP</span>
+    </div>
+    <div class="xp-track"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
+    <div class="xp-title" id="xpTitle" style="color:#78909c">👟 LARGADA</div>
+  </div>
+</div>
+
+<!-- STATS ROW -->
+<div class="stats-row">
+  <div class="stat-card"><div class="stat-num" id="statMedals">0</div><div class="stat-label">Medalhas</div></div>
+  <div class="stat-card"><div class="stat-num" id="statPodios">0</div><div class="stat-label">Pódios</div></div>
+  <div class="stat-card"><div class="stat-num" id="statXP">0</div><div class="stat-label">XP Total</div></div>
+  <div class="stat-card"><div class="stat-num" id="statCoins">🪙 1240</div><div class="stat-label">Pontos</div></div>
+</div>
+
+<!-- CONTENT -->
+<div class="content" id="contentArea"></div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="nav-item active" id="nav-home" onclick="switchTab('home')" style="color:#f5a623">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+    <span>início</span>
+  </div>
+  <div class="nav-item" id="nav-acervo" onclick="switchTab('acervo')" style="color:#666680">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+    <span>acervo</span>
+  </div>
+  <div class="nav-add-btn">
+    <div class="nav-add-circle" onclick="openAdd()">+</div>
+    <div class="nav-add-label">registrar</div>
+  </div>
+  <div class="nav-item" id="nav-niveis" onclick="switchTab('niveis')" style="color:#666680">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+    <span>níveis</span>
+  </div>
+  <div class="nav-item" id="nav-perfil" onclick="switchTab('perfil')" style="color:#666680">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span>perfil</span>
+  </div>
+</div>
+
+<!-- MEDAL DETAIL MODAL -->
+<div class="modal-overlay" id="medalModal" style="display:none" onclick="closeMedalModal(event)">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="medal-3d-scene" id="medal3dScene">
+      <canvas id="medal3dBg" style="position:absolute;inset:0;width:100%;height:100%;opacity:0.3"></canvas>
+      <div class="medal-3d-container" id="medal3dContainer">
+        <div class="medal-face medal-front" id="medal3dFront">
+          <div class="medal-ribbon" id="medal3dRibbon"></div>
+          <span style="font-size:72px" id="medal3dArt">🏅</span>
+        </div>
+        <div class="medal-face medal-back" id="medal3dBack">
+          <div class="medal-ribbon" id="medal3dRibbonBack"></div>
+          <div class="medal-back-text" id="medal3dBackText">dados</div>
+        </div>
+      </div>
+      <div class="rotate-hint" id="rotateHint">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5"/></svg>
+        arraste para girar
+      </div>
+    </div>
+    <div class="medal-detail-info" id="medalDetailInfo"></div>
+  </div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="add-modal" id="addModal" style="display:none" onclick="closeAdd(event)">
+  <div class="add-sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle" style="margin-bottom:16px"></div>
+    <div id="addContent"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast" style="display:none"></div>
+<!-- LEVELUP -->
+<div class="levelup-overlay" id="levelupOverlay" style="display:none"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════════════════
+const LEVELS = [
+  { level:1, title:"Largada",            icon:"👟", color:"#78909c", xpMin:0,    xpMax:500,   perk:"Acesso básico ao acervo" },
+  { level:2, title:"Corredor de Rua",    icon:"🏃", color:"#4caf50", xpMin:500,  xpMax:1200,  perk:"Moldura Verde desbloqueada" },
+  { level:3, title:"Atleta Amador",      icon:"⚡", color:"#42a5f5", xpMin:1200, xpMax:2500,  perk:"Banner exclusivo + cor azul" },
+  { level:4, title:"Veterano das Pistas",icon:"🔥", color:"#ab47bc", xpMin:2500, xpMax:4500,  perk:"Moldura Fogo + título exclusivo" },
+  { level:5, title:"Mestre das Estradas",icon:"💎", color:"#ef5350", xpMin:4500, xpMax:8000,  perk:"Efeito Diamante + cor vermelha" },
+  { level:6, title:"Lenda das Corridas", icon:"👑", color:"#f5a623", xpMin:8000, xpMax:99999, perk:"Moldura Lendária + todos os efeitos" },
+];
+
+const RARITY = {
+  common:   { label:"COMUM",    color:"#78909c", xpMult:1.0, stars:"★☆☆☆" },
+  rare:     { label:"RARO",     color:"#2196f3", xpMult:1.5, stars:"★★☆☆" },
+  epic:     { label:"ÉPICO",    color:"#9c27b0", xpMult:2.0, stars:"★★★☆" },
+  legendary:{ label:"LENDÁRIO", color:"#ff9800", xpMult:3.0, stars:"★★★★" },
+};
+
+const DISTANCES = {
+  "5K":   { label:"5K",     bonus:0,   rarity:"common"   },
+  "10K":  { label:"10K",    bonus:50,  rarity:"common"   },
+  "21K":  { label:"Meia",   bonus:150, rarity:"rare"     },
+  "42K":  { label:"Maratona",bonus:300,rarity:"epic"     },
+  "Trail":{ label:"Trail",  bonus:200, rarity:"rare"     },
+  "Ultra":{ label:"Ultra",  bonus:500, rarity:"legendary"},
+};
+
+const RESULT_TYPES = {
+  finisher:{ label:"Finisher", xp:100, rarityBoost:0  },
+  top10:   { label:"Top 10%",  xp:250, rarityBoost:1  },
+  podium:  { label:"Pódio",    xp:500, rarityBoost:1  },
+  champion:{ label:"Campeão",  xp:800, rarityBoost:2  },
+};
+
+const RARITY_ORDER = ["common","rare","epic","legendary"];
+
+function getMedalRarity(distance, result) {
+  const base = DISTANCES[distance]?.rarity || "common";
+  const boost = RESULT_TYPES[result]?.rarityBoost || 0;
+  const idx = Math.min(RARITY_ORDER.indexOf(base) + boost, 3);
+  return RARITY_ORDER[idx];
+}
+
+function calcMedalXP(distance, result) {
+  const base = RESULT_TYPES[result]?.xp || 100;
+  const bonus = DISTANCES[distance]?.bonus || 0;
+  const rarity = getMedalRarity(distance, result);
+  const mult = RARITY[rarity].xpMult;
+  return Math.round((base + bonus) * mult);
+}
+
+const BANNERS = [
+  { id:"none",      name:"Nenhum",        style:"background:var(--surface2);border:1px dashed var(--border)",     textColor:"#444",   locked:false },
+  { id:"montanhas", name:"Montanhas",     style:"background:linear-gradient(135deg,#1a2744,#0d3b2e)",             textColor:"#fff",   locked:false },
+  { id:"noturno",   name:"Noite Estrelada",style:"background:linear-gradient(135deg,#0d0d2b,#1a0a2e)",            textColor:"#fff",   locked:false },
+  { id:"marathon",  name:"Marathon SP",   style:"background:linear-gradient(135deg,#7b1113,#1a0505)",             textColor:"#fff",   locked:true  },
+  { id:"trail",     name:"Trail Verde",   style:"background:linear-gradient(135deg,#0a2e10,#1a3a0a)",             textColor:"#fff",   locked:true  },
+  { id:"ultra",     name:"Ultra Fire",    style:"background:linear-gradient(135deg,#3a0a00,#1a0a00)",             textColor:"#fff",   locked:true  },
+];
+
+const FRAMES = [
+  { id:"none",      name:"Nenhuma",  class:"frame-none",      icon:"👤", locked:false },
+  { id:"fire",      name:"Chamas",   class:"frame-fire",      icon:"🔥", locked:false },
+  { id:"diamond",   name:"Diamante", class:"frame-diamond",   icon:"💎", locked:false },
+  { id:"gold",      name:"Ouro",     class:"frame-gold",      icon:"🥇", locked:false },
+  { id:"legendary", name:"Lendário", class:"frame-legendary", icon:"👑", locked:true  },
+];
+
+const SHOP_ITEMS = [
+  { id:1, name:"Moldura Chamas",     type:"frame",  cost:300, icon:"🔥", owned:false },
+  { id:2, name:"Moldura Diamante",   type:"frame",  cost:600, icon:"💎", owned:false },
+  { id:3, name:"Moldura Lendária",   type:"frame",  cost:2000,icon:"👑", owned:false },
+  { id:4, name:"Banner Montanhas",   type:"banner", cost:250, icon:"⛰️", owned:true  },
+  { id:5, name:"Banner Noturno",     type:"banner", cost:350, icon:"🌌", owned:false },
+  { id:6, name:"Banner Marathon SP", type:"banner", cost:0,   icon:"🏙️", owned:false, exclusive:true },
+  { id:7, name:"Título: Guerreiro",  type:"title",  cost:150, icon:"⚔️", owned:false },
+  { id:8, name:"Título: Lendário",   type:"title",  cost:800, icon:"👑", owned:false },
+  { id:9, name:"Efeito Dourado",     type:"effect", cost:400, icon:"✨", owned:false },
+  { id:10,name:"Efeito Fogo",        type:"effect", cost:500, icon:"🔥", owned:false },
+];
+
+const FEED = [
+  { initials:"JF", color:"#534AB7", user:"Julia F.", action:"ganhou medalha", target:"Corrida do Trabalhador 21K", emoji:"🏅", xp:375, time:"2h" },
+  { initials:"RL", color:"#0F6E56", user:"Rafael L.", action:"subiu para", target:"Nível 4 — Veterano", emoji:"⬆️", xp:null, time:"5h" },
+  { initials:"AP", color:"#D85A30", user:"Ana P.", action:"ganhou medalha LENDÁRIA", target:"Ultra 50K Mantiqueira", emoji:"🔥", xp:1800, time:"1d" },
+  { initials:"CM", color:"#185FA5", user:"Carlos M.", action:"desbloqueou banner exclusivo", target:"Marathon SP 2025", emoji:"🖼️", xp:null, time:"2d" },
+];
+
+const MEDALS_INITIAL = [
+  { id:1, art:"🥇", name:"SP City Marathon",   race:"São Paulo City Marathon", distance:"42K",  result:"podium",   date:"2025-04-12", time:"3:42:17", pace:"05:18/km", position:"3° M35", pinned:true,  unlock:"qr"  },
+  { id:2, art:"🏅", name:"Corrida das Nações",  race:"Corrida das Nações SP",  distance:"21K",  result:"top10",    date:"2024-11-08", time:"1:38:44", pace:"04:42/km", position:"Top 8%", pinned:true,  unlock:"scan"},
+  { id:3, art:"🥈", name:"10K Ibirapuera",      race:"Corrida Ibirapuera",     distance:"10K",  result:"finisher", date:"2024-09-22", time:"0:52:10", pace:"05:13/km", position:"Finisher",pinned:false, unlock:"partner"},
+  { id:4, art:"🌿", name:"Trail Serra Verde",   race:"Trail da Serra Verde",   distance:"Trail",result:"top10",    date:"2024-07-15", time:"3:10:05", pace:"07:35/km", position:"Top 12%",pinned:true,  unlock:"qr"  },
+  { id:5, art:"🌙", name:"Night Run SP",        race:"Night Run São Paulo",    distance:"10K",  result:"finisher", date:"2024-05-18", time:"0:55:22", pace:"05:32/km", position:"Finisher",pinned:false, unlock:"scan"},
+];
+
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+let medals = MEDALS_INITIAL.map(m => ({ ...m, rarity: getMedalRarity(m.distance, m.result), xp: calcMedalXP(m.distance, m.result) }));
+let coins = 1240;
+let currentTab = 'home';
+let selectedFrame = 'fire';
+let selectedBanner = 'montanhas';
+let shopItems = JSON.parse(JSON.stringify(SHOP_ITEMS));
+let addStep = 1;
+let addMethod = null;
+let addForm = {};
+
+// ═══════════════════════════════════════════════════════
+//  XP / LEVEL HELPERS
+// ═══════════════════════════════════════════════════════
+function totalXP() { return medals.reduce((s,m) => s + m.xp, 0); }
+function getLevel(xp) { return [...LEVELS].reverse().find(l => xp >= l.xpMin) || LEVELS[0]; }
+function getNextLevel(xp) { return LEVELS.find(l => xp < l.xpMax) || LEVELS[LEVELS.length-1]; }
+
+function updateHeader() {
+  const xp = totalXP();
+  const lvl = getLevel(xp);
+  const next = getNextLevel(xp);
+  const pct = Math.min(100, ((xp - next.xpMin) / (next.xpMax - next.xpMin)) * 100);
+
+  document.getElementById('levelPill').textContent = `${lvl.icon} Nível ${lvl.level}`;
+  document.getElementById('levelPill').style.cssText = `background:${lvl.color}22;color:${lvl.color};border:1px solid ${lvl.color}66;`;
+  document.getElementById('xpFill').style.width = pct + '%';
+  document.getElementById('xpFill').style.background = `linear-gradient(90deg,${lvl.color}88,${lvl.color})`;
+  document.getElementById('xpCurrent').textContent = xp.toLocaleString() + ' XP';
+  document.getElementById('xpNext').textContent = `próximo: ${next.xpMax.toLocaleString()} XP`;
+  document.getElementById('xpTitle').textContent = `${lvl.icon} ${lvl.title.toUpperCase()}`;
+  document.getElementById('xpTitle').style.color = lvl.color;
+  document.getElementById('avatarEl').style.background = `linear-gradient(135deg,${lvl.color}88,${lvl.color})`;
+
+  document.getElementById('statMedals').textContent = medals.length;
+  document.getElementById('statPodios').textContent = medals.filter(m=>m.result==='podium'||m.result==='champion').length;
+  document.getElementById('statXP').textContent = xp.toLocaleString();
+  document.getElementById('statCoins').textContent = '🪙 ' + coins.toLocaleString();
+}
+
+// ═══════════════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════════════
+function switchTab(tab) {
+  currentTab = tab;
+  ['home','acervo','niveis','perfil'].forEach(t => {
+    const el = document.getElementById('nav-' + t);
+    if (el) { el.classList.toggle('active', t === tab); el.style.color = t === tab ? '#f5a623' : '#666680'; }
+  });
+  renderContent();
+}
+
+function renderContent() {
+  const area = document.getElementById('contentArea');
+  if (currentTab === 'home') area.innerHTML = renderHome();
+  else if (currentTab === 'acervo') area.innerHTML = renderAcervo();
+  else if (currentTab === 'niveis') area.innerHTML = renderNiveis();
+  else if (currentTab === 'perfil') area.innerHTML = renderPerfil();
+}
+
+// ═══════════════════════════════════════════════════════
+//  HOME TAB
+// ═══════════════════════════════════════════════════════
+function renderHome() {
+  const pinned = medals.filter(m => m.pinned).slice(0, 6);
+  return `
+  ${pinned.length ? `
+  <div class="section">
+    <div class="section-title">📌 Destaques do perfil</div>
+    <div class="medals-grid">${pinned.map(medalCardHTML).join('')}</div>
+  </div>` : ''}
+  <div class="section" style="margin-top:16px">
+    <div class="section-title">👥 Feed de amigos</div>
+    ${FEED.map(f => `
+    <div class="feed-item">
+      <div class="feed-avatar" style="background:${f.color}">${f.initials}</div>
+      <div class="feed-text">
+        <div><span class="feed-user">${f.user}</span> <span class="feed-action">${f.action}</span></div>
+        <div class="feed-target">${f.target}</div>
+        <div class="feed-meta">${f.time} atrás${f.xp ? ` · +${f.xp} XP` : ''}</div>
+      </div>
+      <div class="feed-emoji">${f.emoji}</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  ACERVO TAB
+// ═══════════════════════════════════════════════════════
+function renderAcervo() {
+  return `
+  <div class="section">
+    <div class="section-title">🏅 Todas as medalhas (${medals.length})</div>
+    <div class="medals-grid">
+      ${[...medals].reverse().map(medalCardHTML).join('')}
+      <div onclick="openAdd()" style="background:var(--surface2);border:1.5px dashed var(--border);border-radius:12px;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:4px">
+        <div style="font-size:28px;color:var(--border)">＋</div>
+        <div style="font-size:10px;color:var(--muted)">adicionar</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function medalCardHTML(m) {
+  const r = RARITY[m.rarity];
+  return `
+  <div class="medal-card ${m.rarity}" onclick="openMedal(${m.id})">
+    <div class="medal-art" style="background:radial-gradient(circle at 50% 60%,${r.color}22,transparent 70%)">
+      <div class="rarity-badge rarity-${m.rarity}">${r.label}</div>
+      ${m.pinned ? '<div class="pin-dot">📌</div>' : ''}
+      <span>${m.art}</span>
+    </div>
+    <div class="medal-info">
+      <div class="medal-name">${m.name}</div>
+      <div class="medal-meta">${DISTANCES[m.distance]?.label} · ${m.date.slice(0,7)}</div>
+      <div class="medal-xp">+${m.xp} XP · ${r.stars}</div>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  NIVEIS TAB
+// ═══════════════════════════════════════════════════════
+function renderNiveis() {
+  const xp = totalXP();
+  const current = getLevel(xp);
+  return `
+  <div class="level-road">
+    <div style="padding:0 20px 14px;font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Trilha de Progresso</div>
+    <div style="position:relative">
+      <div class="level-connector"></div>
+      ${LEVELS.map(lvl => {
+        const reached = xp >= lvl.xpMin;
+        const isCurrent = current.level === lvl.level;
+        return `
+        <div class="level-item${isCurrent?' current':''}" style="border-left-color:${isCurrent?lvl.color:'transparent'}">
+          <div class="level-icon-wrap" style="background:${reached?lvl.color+'22':'var(--surface3)'};border:2px solid ${reached?lvl.color:'var(--border)'};box-shadow:${isCurrent?'0 0 16px '+lvl.color+'66':'none'}">
+            ${reached ? lvl.icon : '🔒'}
+          </div>
+          <div style="flex:1">
+            <div class="level-name" style="color:${reached?lvl.color:'var(--muted)'}">
+              Nível ${lvl.level} — ${lvl.title}
+              ${isCurrent ? '<span class="current-badge">ATUAL</span>' : ''}
+            </div>
+            <div class="level-perk">${lvl.perk}</div>
+            ${isCurrent ? `
+            <div style="margin-top:6px">
+              <div style="background:rgba(255,255,255,0.08);border-radius:4px;height:5px;overflow:hidden">
+                <div style="width:${Math.min(100,((xp-lvl.xpMin)/(lvl.xpMax-lvl.xpMin))*100)}%;height:100%;background:${lvl.color};border-radius:4px;transition:width 0.8s"></div>
+              </div>
+            </div>` : ''}
+          </div>
+          <div class="level-xp-req" style="color:${reached?lvl.color:'var(--muted)'}">${lvl.xpMin.toLocaleString()} XP</div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div style="padding:20px 16px 0">
+      <div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px">📊 Raridade das medalhas</div>
+      ${Object.entries(RARITY).map(([key, r]) => {
+        const count = medals.filter(m=>m.rarity===key).length;
+        return `
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:0.5px solid var(--surface2)">
+          <div style="width:10px;height:10px;border-radius:50%;background:${r.color};box-shadow:0 0 8px ${r.color}66"></div>
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:700;color:${r.color};font-family:'Rajdhani',sans-serif;letter-spacing:0.5px">${r.label} ${r.stars}</div>
+            <div style="font-size:10px;color:var(--muted)">${r.xpMult}x multiplicador de XP</div>
+          </div>
+          <div style="font-size:14px;font-weight:800;color:${r.color};font-family:'Rajdhani',sans-serif">${count} medalha${count!==1?'s':''}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  PERFIL TAB
+// ═══════════════════════════════════════════════════════
+function renderPerfil() {
+  const banner = BANNERS.find(b => b.id === selectedBanner) || BANNERS[0];
+  const frame = FRAMES.find(f => f.id === selectedFrame) || FRAMES[0];
+  const xp = totalXP();
+  const lvl = getLevel(xp);
+
+  return `
+  <div style="padding:16px 16px 0">
+    <!-- Preview do perfil -->
+    <div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Prévia do Perfil</div>
+    <div style="border-radius:14px;overflow:hidden;border:0.5px solid var(--border);margin-bottom:20px">
+      <!-- Banner -->
+      <div style="${banner.style};height:90px;position:relative;display:flex;align-items:flex-end;padding:10px 14px">
+        ${banner.id !== 'none' ? `<div style="font-size:10px;color:${banner.textColor};opacity:0.6;font-weight:700;text-transform:uppercase;letter-spacing:1px">${banner.name}</div>` : ''}
+      </div>
+      <!-- Avatar area -->
+      <div style="background:var(--surface2);padding:0 14px 14px">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:-22px">
+          <div style="position:relative;width:52px;height:52px">
+            <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,${lvl.color}88,${lvl.color});display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;border:3px solid var(--surface2)">MR</div>
+            <div class="avatar-frame ${frame.class}" style="inset:-5px;border-radius:50%"></div>
+          </div>
+          <div style="margin-bottom:4px">
+            <div class="level-pill" style="background:${lvl.color}22;color:${lvl.color};border:1px solid ${lvl.color}66;font-size:11px;padding:4px 10px">${lvl.icon} Nível ${lvl.level}</div>
+          </div>
+        </div>
+        <div style="font-size:15px;font-weight:800;color:var(--text);margin-top:8px">Marcos Ribeiro</div>
+        <div style="font-size:11px;color:var(--muted)">${lvl.title} · ${medals.length} medalhas</div>
+      </div>
+    </div>
+
+    <!-- Banner selector -->
+    <div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">🖼️ Banner do perfil</div>
+    <div class="banner-grid">
+      ${BANNERS.map(b => `
+      <div class="banner-option ${selectedBanner===b.id?'selected':''}" style="${b.style};opacity:${b.locked?'0.45':'1'}" onclick="${b.locked?'showToast(\'🔒 Banner exclusivo de parceiro! Complete a corrida para desbloquear\',\'#ef5350\')':'selectBanner(\''+b.id+'\')'}">
+        ${b.locked ? '<span style="font-size:16px">🔒</span>' : ''}
+        <div class="banner-name">${b.name}${b.locked?' 🔒':''}</div>
+      </div>`).join('')}
+    </div>
+
+    <!-- Frame selector -->
+    <div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin:14px 0 10px">🖼️ Moldura do avatar</div>
+    <div class="frame-grid">
+      ${FRAMES.map(f => `
+      <div class="frame-option ${selectedFrame===f.id?'selected':''}" onclick="${f.locked?'showToast(\'🔒 Chegue ao Nível 6 para desbloquear!\',\'#ef5350\')':'selectFrame(\''+f.id+'\')'}">
+        <div class="frame-preview" style="background:var(--surface2);border:2px solid ${selectedFrame===f.id?'#f5a623':'var(--border)'}">
+          ${f.locked ? '<span style="font-size:20px;opacity:0.3">🔒</span>' : `<div style="width:40px;height:40px;border-radius:50%;background:var(--surface3);position:relative"><div class="avatar-frame ${f.class}" style="inset:-3px"></div></div>`}
+        </div>
+        <div class="frame-option-label">${f.name}</div>
+      </div>`).join('')}
+    </div>
+
+    <!-- Shop quick access -->
+    <div style="margin-top:20px;background:var(--surface2);border-radius:12px;padding:14px;border:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="openShop()">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--text)">🛒 Loja de recompensas</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Troque pontos por molduras, banners e efeitos</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;background:var(--surface3);padding:5px 10px;border-radius:20px">
+        <span style="font-size:13px">🪙</span>
+        <span style="font-size:13px;font-weight:800;color:var(--gold);font-family:'Rajdhani',sans-serif">${coins}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function selectBanner(id) {
+  selectedBanner = id;
+  renderContent();
+}
+
+function selectFrame(id) {
+  selectedFrame = id;
+  const frame = FRAMES.find(f => f.id === id);
+  // Update header avatar frame
+  const el = document.getElementById('avatarFrame');
+  el.className = 'avatar-frame ' + (frame?.class || 'frame-none');
+  renderContent();
+}
+
+function openShop() {
+  document.getElementById('contentArea').innerHTML = renderShop();
+}
+
+function renderShop() {
+  return `
+  <div class="shop-header">
+    <div style="font-size:15px;font-weight:800;color:var(--text);font-family:'Rajdhani',sans-serif;letter-spacing:0.5px">🛒 Loja</div>
+    <div class="points-pill">🪙 <span>${coins.toLocaleString()}</span></div>
+  </div>
+  <div class="filter-row" id="shopFilters">
+    ${['all','frame','banner','title','effect'].map(f=>`<button class="filter-btn${f==='all'?' active':''}" onclick="filterShop('${f}',this)">${{all:'Todos',frame:'Molduras',banner:'Banners',title:'Títulos',effect:'Efeitos'}[f]}</button>`).join('')}
+  </div>
+  <div class="shop-grid" id="shopGrid">${renderShopItems('all')}</div>`;
+}
+
+function renderShopItems(filter) {
+  return shopItems.filter(i => filter==='all'||i.type===filter).map(item => `
+  <div class="shop-item${item.exclusive?' ':' '}">
+    <div class="shop-item-icon">${item.icon}</div>
+    <div class="shop-item-name">${item.name}</div>
+    <div class="shop-item-type">${item.type}${item.exclusive?' · exclusivo':''}</div>
+    <button class="buy-btn ${item.owned?'owned':coins>=item.cost?'can-buy':'cant-buy'}" onclick="${item.owned?'':'buyItem('+item.id+')'}">
+      ${item.owned ? '✅ adquirido' : item.exclusive ? '🏅 exclusivo de parceiro' : `🪙 ${item.cost.toLocaleString()}`}
+    </button>
+  </div>`).join('');
+}
+
+function filterShop(f, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('shopGrid').innerHTML = renderShopItems(f);
+}
+
+function buyItem(id) {
+  const item = shopItems.find(i=>i.id===id);
+  if (!item || item.owned || coins < item.cost) return;
+  coins -= item.cost;
+  item.owned = true;
+  updateHeader();
+  showToast(`✨ ${item.name} desbloqueado!`, '#ab47bc');
+  document.getElementById('shopGrid').innerHTML = renderShopItems('all');
+  const el = document.getElementById('statCoins');
+  if (el) el.textContent = '🪙 ' + coins.toLocaleString();
+}
+
+// ═══════════════════════════════════════════════════════
+//  3D MEDAL MODAL
+// ═══════════════════════════════════════════════════════
+let rotX = 0, rotY = 0, isDragging = false, lastX = 0, lastY = 0, animFrame = null, autoRot = true;
+
+function openMedal(id) {
+  const m = medals.find(x => x.id === id);
+  if (!m) return;
+  const r = RARITY[m.rarity];
+
+  // Set up 3D medal
+  const front = document.getElementById('medal3dFront');
+  const back = document.getElementById('medal3dBack');
+  const ribbon = document.getElementById('medal3dRibbon');
+  const ribbonBack = document.getElementById('medal3dRibbonBack');
+  const scene = document.getElementById('medal3dScene');
+
+  front.style.cssText = `background:radial-gradient(circle at 35% 35%,${r.color}55,${r.color}22);border:3px solid ${r.color}99;box-shadow:0 0 30px ${r.color}44,inset 0 0 20px ${r.color}11;position:absolute;width:160px;height:160px;border-radius:50%;backface-visibility:hidden;display:flex;align-items:center;justify-content:center;flex-direction:column;`;
+  back.style.cssText = `background:radial-gradient(circle at 65% 65%,${r.color}44,${r.color}11);border:3px solid ${r.color}88;position:absolute;width:160px;height:160px;border-radius:50%;backface-visibility:hidden;display:flex;align-items:center;justify-content:center;flex-direction:column;transform:rotateY(180deg);padding:14px;`;
+
+  const ribColor = r.color;
+  ribbon.style.cssText = `position:absolute;top:-40px;left:50%;transform:translateX(-50%);width:20px;height:44px;border-radius:3px 3px 0 0;background:${ribColor};box-shadow:0 0 10px ${ribColor}66;`;
+  ribbonBack.style.cssText = ribbon.style.cssText;
+
+  document.getElementById('medal3dArt').textContent = m.art;
+
+  const timing = `
+    <div style="font-size:14px;font-weight:800;color:${r.color};margin-bottom:3px;font-family:'Rajdhani',sans-serif">${m.time || '--:--:--'}</div>
+    <div class="medal-back-divider"></div>
+    <div class="medal-back-text">
+      📍 ${m.race}<br>
+      📅 ${m.date}<br>
+      ⚡ ${m.pace || '-- /km'}<br>
+      🏆 ${m.position || '--'}<br>
+      ✨ +${m.xp} XP<br>
+      <div class="medal-back-divider"></div>
+      <span style="color:${r.color};font-weight:700;letter-spacing:1px">${r.label} ${r.stars}</span>
+    </div>`;
+  document.getElementById('medal3dBackText').innerHTML = timing;
+
+  scene.style.background = `radial-gradient(ellipse at center, ${r.color}15 0%, transparent 70%)`;
+
+  // Detail section
+  const unlock = { qr:"📱 QR Code oficial", scan:"📷 Foto digitalizada", partner:"🤝 Parceiro", manual:"✏️ Manual" };
+  document.getElementById('medalDetailInfo').innerHTML = `
+    <div class="medal-detail-name">${m.name}</div>
+    <div class="medal-detail-race">${m.race}</div>
+    <div class="rarity-row">
+      <span class="rarity-tag rarity-${m.rarity}" style="background:${r.color}22;color:${r.color}">${r.label} ${r.stars}</span>
+      <span class="unlock-tag">${unlock[m.unlock] || '✏️ Manual'}</span>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-box"><div class="stat-box-val" style="color:${r.color}">${DISTANCES[m.distance]?.label}</div><div class="stat-box-lbl">Distância</div></div>
+      <div class="stat-box"><div class="stat-box-val" style="color:${r.color}">+${m.xp}</div><div class="stat-box-lbl">XP ganho</div></div>
+      <div class="stat-box"><div class="stat-box-val" style="color:${r.color}">${RESULT_TYPES[m.result]?.label}</div><div class="stat-box-lbl">Resultado</div></div>
+    </div>
+    <div class="timing-box">
+      <div class="timing-title">⏱️ Dados de chip — ${m.date}</div>
+      <div class="timing-row"><span class="timing-label">Tempo oficial</span><span class="timing-val">${m.time || '--'}</span></div>
+      <div class="timing-row"><span class="timing-label">Pace médio</span><span class="timing-val">${m.pace || '--'}</span></div>
+      <div class="timing-row"><span class="timing-label">Posição</span><span class="timing-val">${m.position || '--'}</span></div>
+      <div class="timing-row"><span class="timing-label">Corrida</span><span class="timing-val">${m.race}</span></div>
+    </div>
+    <button class="action-btn" style="border-color:${r.color};color:${r.color}" onclick="togglePin(${m.id})">
+      ${m.pinned ? '📌 Remover do destaque' : '📌 Fixar no perfil'}
+    </button>
+    <button class="action-btn" style="border-color:var(--border);color:var(--muted);margin-top:6px" onclick="closeMedalModal()">Fechar</button>
+  `;
+
+  document.getElementById('medalModal').style.display = 'flex';
+  rotX = 0; rotY = 15; autoRot = true;
+  setupDrag();
+  startAutoRotate();
+}
+
+function startAutoRotate() {
+  if (animFrame) cancelAnimationFrame(animFrame);
+  function loop() {
+    if (autoRot && !isDragging) { rotY += 0.4; }
+    const c = document.getElementById('medal3dContainer');
+    if (c) c.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+    animFrame = requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+function setupDrag() {
+  const c = document.getElementById('medal3dContainer');
+  if (!c) return;
+  c.onmousedown = c.ontouchstart = (e) => {
+    isDragging = true; autoRot = false;
+    const pt = e.touches ? e.touches[0] : e;
+    lastX = pt.clientX; lastY = pt.clientY;
+    e.preventDefault();
+  };
+  document.onmousemove = document.ontouchmove = (e) => {
+    if (!isDragging) return;
+    const pt = e.touches ? e.touches[0] : e;
+    rotY += (pt.clientX - lastX) * 0.8;
+    rotX -= (pt.clientY - lastY) * 0.4;
+    rotX = Math.max(-40, Math.min(40, rotX));
+    lastX = pt.clientX; lastY = pt.clientY;
+  };
+  document.onmouseup = document.ontouchend = () => { isDragging = false; };
+}
+
+function closeMedalModal(e) {
+  if (e && e.target !== document.getElementById('medalModal')) return;
+  document.getElementById('medalModal').style.display = 'none';
+  if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+  document.onmousemove = document.ontouchmove = document.onmouseup = document.ontouchend = null;
+  renderContent();
+}
+
+function togglePin(id) {
+  const m = medals.find(x => x.id === id);
+  if (m) { m.pinned = !m.pinned; showToast(m.pinned ? '📌 Fixada no perfil!' : '📌 Removida do destaque'); }
+  document.getElementById('medalModal').style.display = 'none';
+  if (animFrame) cancelAnimationFrame(animFrame);
+  document.onmousemove = document.ontouchmove = document.onmouseup = document.ontouchend = null;
+  renderContent();
+}
+
+// ═══════════════════════════════════════════════════════
+//  ADD MEDAL
+// ═══════════════════════════════════════════════════════
+function openAdd() {
+  addStep = 1; addMethod = null; addForm = { art:'🏅', distance:'10K', result:'finisher', name:'', date: new Date().toISOString().slice(0,10), notes:'' };
+  document.getElementById('addModal').style.display = 'flex';
+  renderAddContent();
+}
+
+function closeAdd(e) {
+  if (e && e.target !== document.getElementById('addModal')) return;
+  document.getElementById('addModal').style.display = 'none';
+}
+
+function renderAddContent() {
+  document.getElementById('addContent').innerHTML = `
+    <div class="add-title">${addStep===1?'Registrar Medalha':addStep===2?'Dados da Corrida':'Confirmar & Ganhar XP'}</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Passo ${addStep} de 3</div>
+    <div class="step-dots">${[1,2,3].map(i=>`<div class="step-dot${i<=addStep?' done':''}"></div>`).join('')}</div>
+    ${addStep===1?renderAddStep1():addStep===2?renderAddStep2():renderAddStep3()}`;
+}
+
+function renderAddStep1() {
+  return `
+  <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Como quer registrar sua medalha?</div>
+  ${[
+    { key:'qr',      icon:'📱', name:'QR Code na medalha',    desc:'Medalha de parceiro oficial — escaneie e ela é liberada com arte e dados oficiais',    badge:'Parceiro Oficial' },
+    { key:'scan',    icon:'📷', name:'Fotografar a medalha',   desc:'Tire foto da sua medalha física e a IA cria a arte digital personalizada' },
+    { key:'manual',  icon:'✏️', name:'Cadastro manual',        desc:'Preencha os dados você mesmo e escolha o emoji de arte' },
+  ].map(m => `
+  <div class="method-card" onclick="selectMethod('${m.key}')">
+    <div class="method-icon">${m.icon}</div>
+    <div>
+      <div class="method-name">${m.name}${m.badge?`<span class="partner-badge">${m.badge}</span>`:''}</div>
+      <div class="method-desc">${m.desc}</div>
+    </div>
+  </div>`).join('')}`;
+}
+
+let scanState = 'idle';
+function renderAddStep2() {
+  if (addMethod === 'qr' || addMethod === 'scan') {
+    const isQR = addMethod === 'qr';
+    return `
+    <div class="scan-box${scanState==='scanning'?' scanning':''}" id="scanBox">
+      <div style="font-size:${scanState==='done'?'48':'40'}px;margin-bottom:10px">${scanState==='done'?'✅':isQR?'📱':'📷'}</div>
+      ${scanState==='scanning' ? '<div class="scan-line"></div>' : ''}
+      <div style="font-size:13px;color:${scanState==='scanning'?'var(--gold)':scanState==='done'?'#4caf50':'var(--muted)'};font-weight:600;margin-top:8px">
+        ${scanState==='idle'?`Toque para ${isQR?'escanear o QR Code':'fotografar a medalha'}`:scanState==='scanning'?`${isQR?'Lendo QR Code':'Processando imagem'}...`:'Medalha reconhecida!'}
+      </div>
+      ${scanState==='idle'?`<button onclick="startScan()" style="margin-top:12px;padding:8px 20px;background:var(--surface3);border:none;border-radius:10px;color:var(--text);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">Simular ${isQR?'Scan':'Foto'} ↗</button>`:''}
+    </div>
+    ${scanState==='done'?`
+    <div style="background:var(--surface2);border-radius:12px;padding:12px 14px;margin-bottom:14px;border:0.5px solid #4caf5044">
+      <div style="font-size:12px;font-weight:700;color:#4caf50;margin-bottom:6px">📡 Dados importados</div>
+      <div style="font-size:12px;color:var(--text)">${addForm.name}</div>
+      <div style="font-size:11px;color:var(--muted)">${addForm.distance} · ${addForm.date} · ${addForm.time}</div>
+    </div>
+    <button onclick="goStep(3)" style="width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(90deg,var(--gold),#e85d04);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:'Rajdhani',sans-serif;letter-spacing:1px">Continuar →</button>
+    `:''}`;
+  }
+
+  return `
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div>
+      <label class="field-label">Nome da prova *</label>
+      <input class="field-input" id="fName" placeholder="Ex: Corrida do Sol" value="${addForm.name}" oninput="addForm.name=this.value">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div>
+        <label class="field-label">Data</label>
+        <input type="date" class="field-input" value="${addForm.date}" oninput="addForm.date=this.value">
+      </div>
+      <div>
+        <label class="field-label">Arte (emoji)</label>
+        <input class="field-input" value="${addForm.art}" oninput="addForm.art=this.value" style="text-align:center;font-size:22px">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div>
+        <label class="field-label">Distância</label>
+        <select class="field-input" onchange="addForm.distance=this.value">
+          ${Object.entries(DISTANCES).map(([k,v])=>`<option value="${k}"${addForm.distance===k?' selected':''}>${v.label}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Resultado</label>
+        <select class="field-input" onchange="addForm.result=this.value">
+          ${Object.entries(RESULT_TYPES).map(([k,v])=>`<option value="${k}"${addForm.result===k?' selected':''}>${v.label}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div>
+      <label class="field-label">Tempo (opcional)</label>
+      <input class="field-input" placeholder="Ex: 1:38:44" value="${addForm.time||''}" oninput="addForm.time=this.value">
+    </div>
+    <button onclick="if(addForm.name&&addForm.date)goStep(3)" style="width:100%;padding:12px;border-radius:12px;border:none;background:${addForm.name?'linear-gradient(90deg,var(--gold),#e85d04)':'var(--surface3)'};color:${addForm.name?'#fff':'var(--muted)'};font-size:14px;font-weight:800;cursor:pointer;font-family:'Rajdhani',sans-serif;letter-spacing:1px">Continuar →</button>
+  </div>`;
+}
+
+function renderAddStep3() {
+  const xp = calcMedalXP(addForm.distance, addForm.result);
+  const rarity = getMedalRarity(addForm.distance, addForm.result);
+  const r = RARITY[rarity];
+  return `
+  <div class="xp-preview">
+    <div style="font-size:64px;margin-bottom:10px;filter:drop-shadow(0 0 20px ${r.color}66)">${addForm.art}</div>
+    <div style="font-size:18px;font-weight:800;color:var(--text);font-family:'Rajdhani',sans-serif">${addForm.name||'Medalha'}</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px">${DISTANCES[addForm.distance]?.label} · ${RESULT_TYPES[addForm.result]?.label}</div>
+    <div style="margin-top:14px;display:flex;gap:16px;justify-content:center;align-items:center">
+      <div><div class="xp-big">+${xp}</div><div style="font-size:10px;color:var(--muted)">XP ganho</div></div>
+      <div style="width:1px;height:40px;background:var(--border)"></div>
+      <div><div style="font-size:18px;font-weight:800;color:${r.color};font-family:'Rajdhani',sans-serif">${r.label}</div><div style="font-size:10px;color:var(--muted)">${r.stars}</div></div>
+    </div>
+  </div>
+  <div style="background:var(--surface2);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:11px;color:var(--muted);line-height:1.7;border:0.5px solid var(--border)">
+    💡 <strong style="color:var(--text)">Como ganhar mais XP:</strong> Distâncias maiores + melhores resultados aumentam a raridade da medalha, que multiplica seu XP. Uma Ultra Campeão vale <strong style="color:var(--gold)">3900 XP</strong>!
+  </div>
+  <button class="confirm-btn" onclick="confirmAdd()">🏅 ADICIONAR AO ACERVO!</button>`;
+}
+
+function selectMethod(m) {
+  addMethod = m; addStep = 2; scanState = 'idle';
+  if (m === 'qr' || m === 'scan') {
+    addForm = { ...addForm, name:'Corrida do Sol 10K', distance:'10K', result:'top10', date: new Date().toISOString().slice(0,10), time:'0:52:33', pace:'05:15/km', position:'Top 9%' };
+  }
+  renderAddContent();
+}
+
+function startScan() {
+  scanState = 'scanning';
+  renderAddContent();
+  setTimeout(() => { scanState = 'done'; renderAddContent(); }, 2000);
+}
+
+function goStep(s) { addStep = s; renderAddContent(); }
+
+function confirmAdd() {
+  const prevXP = totalXP();
+  const prevLvl = getLevel(prevXP).level;
+  const xp = calcMedalXP(addForm.distance, addForm.result);
+  const rarity = getMedalRarity(addForm.distance, addForm.result);
+  medals.push({ id: Date.now(), ...addForm, xp, rarity, pinned: false, unlock: addMethod||'manual', race: addForm.name });
+  coins += Math.floor(xp * 0.3);
+  document.getElementById('addModal').style.display = 'none';
+  updateHeader();
+  const newLvl = getLevel(totalXP()).level;
+  if (newLvl > prevLvl) {
+    showLevelUp(newLvl);
+  } else {
+    showToast(`🏅 +${xp} XP · ${RARITY[rarity].label}!`, RARITY[rarity].color);
+  }
+  renderContent();
+}
+
+// ═══════════════════════════════════════════════════════
+//  TOAST / LEVEL UP
+// ═══════════════════════════════════════════════════════
+function showToast(msg, color = '#f5a623') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.cssText = `display:block;border:1.5px solid ${color};color:${color};box-shadow:0 4px 24px ${color}33;`;
+  setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+
+function showLevelUp(lvl) {
+  const l = LEVELS.find(x => x.level === lvl);
+  const ov = document.getElementById('levelupOverlay');
+  ov.innerHTML = `
+    <div class="levelup-emoji">${l.icon}</div>
+    <div class="levelup-title" style="color:${l.color}">LEVEL UP!</div>
+    <div class="level-pill" style="background:${l.color}22;color:${l.color};border:1px solid ${l.color}66;font-size:14px;padding:8px 16px">Nível ${l.level} — ${l.title}</div>
+    <div class="levelup-sub">${l.perk}</div>`;
+  ov.style.display = 'flex';
+  setTimeout(() => { ov.style.display = 'none'; }, 3500);
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+updateHeader();
+switchTab('home');
+// Apply initial frame to header avatar
+const initFrame = FRAMES.find(f => f.id === selectedFrame);
+if (initFrame) document.getElementById('avatarFrame').className = 'avatar-frame ' + initFrame.class;
+</script>
+</body>
+</html>
